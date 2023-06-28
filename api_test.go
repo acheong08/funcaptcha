@@ -6,15 +6,11 @@ import (
 )
 
 func TestGetToken(t *testing.T) {
-	options := &GetTokenOptions{
-		PKey: "35536E1E-65B4-4D96-9D97-6ADB7EFF8147",
-		SURL: "https://tcr9i.chat.openai.com",
-	}
-	res, _ := GetToken(options)
-	if !strings.Contains(res.Token, "sup=") {
+	token, _ := GetOpenAITokenV1()
+	if !strings.Contains(token, "sup=") {
 		t.Errorf("Token does not contain 'sup='")
 	}
-	if !strings.Contains(res.Token, "rid=") {
+	if !strings.Contains(token, "rid=") {
 		t.Errorf("Token does not contain 'rid='")
 	}
 }
