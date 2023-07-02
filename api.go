@@ -39,86 +39,6 @@ func init() {
 	}
 }
 
-func SetTLSClient(cli *tls_client.HttpClient) {
-	client = cli
-}
-func GetOpenAIToken() (string, string, error) { // Returns token, hex, error
-	hex := randomHex(32)
-	bda := getBDA(hex)
-	bda = base64.StdEncoding.EncodeToString([]byte(bda))
-	form := url.Values{
-		"bda":          {bda},
-		"public_key":   {"35536E1E-65B4-4D96-9D97-6ADB7EFF8147"},
-		"site":         {"https://chat.openai.com"},
-		"userbrowser":  {bv},
-		"capi_version": {"1.5.2"},
-		"capi_mode":    {"lightbox"},
-		"style_theme":  {"default"},
-		"rnd":          {strconv.FormatFloat(rand.Float64(), 'f', -1, 64)},
-	}
-	req, _ := http.NewRequest(http.MethodPost, "https://tcr9i.chat.openai.com/fc/gt2/public_key/35536E1E-65B4-4D96-9D97-6ADB7EFF8147", strings.NewReader(form.Encode()))
-	req.Header.Set("Accept", "*/*")
-	req.Header.Set("Accept-Encoding", "gzip, deflate, br")
-	req.Header.Set("Accept-Language", "zh-CN,zh;q=0.9,en;q=0.8")
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8")
-	req.Header.Set("DNT", "1")
-	req.Header.Set("Origin", "https://tcr9i.chat.openai.com")
-	req.Header.Set("Referer", fmt.Sprintf("https://tcr9i.chat.openai.com/v2/1.5.2/enforcement.%s.html", hex))
-	req.Header.Set("User-Agent", bv)
-	resp, err := (*client).Do(req)
-	if err != nil {
-		return "", "", err
-	}
-
-	defer resp.Body.Close()
-	if resp.StatusCode != 200 {
-		return "", "", errors.New("status code " + resp.Status)
-	}
-
-	type arkoseResponse struct {
-		Token string `json:"token"`
-	}
-	var arkose arkoseResponse
-	err = json.NewDecoder(resp.Body).Decode(&arkose)
-	if err != nil {
-		return "", "", err
-	}
-
-	return arkose.Token, hex, nil
-}
-
-//goland:noinspection SpellCheckingInspection
-func getBDA(hex string) string {
-	bx := fmt.Sprintf(bx_template,
-		getF(),
-		getN(),
-		getWh(),
-		webglExtensions,
-		getWebglExtensionsHash(),
-		webglRenderer,
-		webglVendor,
-		webglVersion,
-		webglShadingLanguageVersion,
-		webglAliasedLineWidthRange,
-		webglAliasedPointSizeRange,
-		webglAntialiasing,
-		webglBits,
-		webglMaxParams,
-		webglMaxViewportDims,
-		webglUnmaskedVendor,
-		webglUnmaskedRenderer,
-		webglVsfParams,
-		webglVsiParams,
-		webglFsfParams,
-		webglFsiParams,
-		getWebglHashWebgl(),
-		hex,
-		getFe(),
-		getIfeHash(),
-	)
-	bx20230702 = fmt.Sprintf(`[{"key":"fe","value":%s}]`, getFe())
-)
-
 //goland:noinspection GoUnhandledErrorResult
 func init() {
 	cli, _ := tls_client.NewHttpClient(tls_client.NewNoopLogger(), options...)
@@ -134,14 +54,21 @@ func SetTLSClient(cli *tls_client.HttpClient) {
 	client = cli
 }
 
-func GetOpenAIToken() (string, error) {
-	return sendRequest("")
+func GetOpenAIToken() (string, string, error) {
+	hex := randomHex(32)
+	token, err := sendRequest(hex, "")
+	return token, hex, err
+}
+
+func GetOpenAITokenWithBx(bx string) (string, error) {
+	hex := randomHex(32)
+	return sendRequest(hex, getBdaWitBx(bx))
 }
 
 //goland:noinspection SpellCheckingInspection,GoUnhandledErrorResult
-func sendRequest(bda string) (string, error) {
+func sendRequest(hex, bda string) (string, error) {
 	if bda == "" {
-		bda = getBDA()
+		bda = getBDA(hex)
 	}
 	form := url.Values{
 		"bda":          {base64.StdEncoding.EncodeToString([]byte(bda))},
@@ -185,7 +112,35 @@ func sendRequest(bda string) (string, error) {
 }
 
 //goland:noinspection SpellCheckingInspection
-func getBDA() string {
+func getBDA(hex string) string {
+	bx := fmt.Sprintf(bx_template,
+		getF(),
+		getN(),
+		getWh(),
+		webglExtensions,
+		getWebglExtensionsHash(),
+		webglRenderer,
+		webglVendor,
+		webglVersion,
+		webglShadingLanguageVersion,
+		webglAliasedLineWidthRange,
+		webglAliasedPointSizeRange,
+		webglAntialiasing,
+		webglBits,
+		webglMaxParams,
+		webglMaxViewportDims,
+		webglUnmaskedVendor,
+		webglUnmaskedRenderer,
+		webglVsfParams,
+		webglVsiParams,
+		webglFsfParams,
+		webglFsiParams,
+		getWebglHashWebgl(),
+		hex,
+		getFe(),
+		getIfeHash(),
+	)
+	bx20230702 := fmt.Sprintf(`[{"key":"fe","value":%s}]`, getFe())
 	bx = bx20230702
 	bt := getBt()
 	bw := getBw(bt)
@@ -198,10 +153,6 @@ func getBt() int64 {
 
 func getBw(bt int64) string {
 	return strconv.FormatInt(bt-(bt%21600), 10)
-}
-
-func GetOpenAITokenWithBx(bx string) (string, error) {
-	return sendRequest(getBdaWitBx(bx))
 }
 
 func getBdaWitBx(bx string) string {
