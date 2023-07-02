@@ -87,7 +87,7 @@ func sendRequest(hex, bda string) (string, error) {
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8")
 	req.Header.Set("DNT", "1")
 	req.Header.Set("Origin", "https://tcr9i.chat.openai.com")
-	req.Header.Set("Referer", "https://tcr9i.chat.openai.com/v2/1.5.2/enforcement.64b3a4e29686f93d52816249ecbf9857.html")
+	req.Header.Set("Referer", fmt.Sprintf("https://tcr9i.chat.openai.com/v2/1.5.2/enforcement.%s.html", hex))
 	req.Header.Set("User-Agent", bv)
 	resp, err := (*client).Do(req)
 	if err != nil {
@@ -140,8 +140,6 @@ func getBDA(hex string) string {
 		getFe(),
 		getIfeHash(),
 	)
-	bx20230702 := fmt.Sprintf(`[{"key":"fe","value":%s}]`, getFe())
-	bx = bx20230702
 	bt := getBt()
 	bw := getBw(bt)
 	return encrypt(bx, bv+bw)
