@@ -116,8 +116,96 @@ func getBDA(hex string) string {
 		getFe(),
 		getIfeHash(),
 	)
+	bx20230702 = fmt.Sprintf(`[{"key":"fe","value":%s}]`, getFe())
+)
 
-	bt := time.Now().UnixMicro() / 1000000
-	bw := strconv.FormatInt(bt-(bt%21600), 10)
+//goland:noinspection GoUnhandledErrorResult
+func init() {
+	cli, _ := tls_client.NewHttpClient(tls_client.NewNoopLogger(), options...)
+	client = &cli
+	proxy := os.Getenv("http_proxy")
+	if proxy != "" {
+		(*client).SetProxy(proxy)
+	}
+}
+
+//goland:noinspection GoUnusedExportedFunction
+func SetTLSClient(cli *tls_client.HttpClient) {
+	client = cli
+}
+
+func GetOpenAIToken() (string, error) {
+	return sendRequest("")
+}
+
+//goland:noinspection SpellCheckingInspection,GoUnhandledErrorResult
+func sendRequest(bda string) (string, error) {
+	if bda == "" {
+		bda = getBDA()
+	}
+	form := url.Values{
+		"bda":          {base64.StdEncoding.EncodeToString([]byte(bda))},
+		"public_key":   {"35536E1E-65B4-4D96-9D97-6ADB7EFF8147"},
+		"site":         {"https://chat.openai.com"},
+		"userbrowser":  {bv},
+		"capi_version": {"1.5.2"},
+		"capi_mode":    {"lightbox"},
+		"style_theme":  {"default"},
+		"rnd":          {strconv.FormatFloat(rand.Float64(), 'f', -1, 64)},
+	}
+	req, _ := http.NewRequest(http.MethodPost, "https://tcr9i.chat.openai.com/fc/gt2/public_key/35536E1E-65B4-4D96-9D97-6ADB7EFF8147", strings.NewReader(form.Encode()))
+	req.Header.Set("Accept", "*/*")
+	req.Header.Set("Accept-Encoding", "gzip, deflate, br")
+	req.Header.Set("Accept-Language", "zh-CN,zh;q=0.9,en;q=0.8")
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8")
+	req.Header.Set("DNT", "1")
+	req.Header.Set("Origin", "https://tcr9i.chat.openai.com")
+	req.Header.Set("Referer", "https://tcr9i.chat.openai.com/v2/1.5.2/enforcement.64b3a4e29686f93d52816249ecbf9857.html")
+	req.Header.Set("User-Agent", bv)
+	resp, err := (*client).Do(req)
+	if err != nil {
+		return "", err
+	}
+
+	defer resp.Body.Close()
+	if resp.StatusCode != 200 {
+		return "", errors.New("status code " + resp.Status)
+	}
+
+	type arkoseResponse struct {
+		Token string `json:"token"`
+	}
+	var arkose arkoseResponse
+	err = json.NewDecoder(resp.Body).Decode(&arkose)
+	if err != nil {
+		return "", err
+	}
+
+	return arkose.Token, nil
+}
+
+//goland:noinspection SpellCheckingInspection
+func getBDA() string {
+	bx = bx20230702
+	bt := getBt()
+	bw := getBw(bt)
+	return encrypt(bx, bv+bw)
+}
+
+func getBt() int64 {
+	return time.Now().UnixMicro() / 1000000
+}
+
+func getBw(bt int64) string {
+	return strconv.FormatInt(bt-(bt%21600), 10)
+}
+
+func GetOpenAITokenWithBx(bx string) (string, error) {
+	return sendRequest(getBdaWitBx(bx))
+}
+
+func getBdaWitBx(bx string) string {
+	bt := getBt()
+	bw := getBw(bt)
 	return encrypt(bx, bv+bw)
 }
