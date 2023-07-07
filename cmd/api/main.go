@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 	"os"
 
@@ -22,35 +23,36 @@ func main() {
 }
 
 func captchaStart(c *gin.Context) {
-	token, hex, err := funcaptcha.GetOpenAIToken()
-	if err == nil {
-		c.JSON(200, gin.H{"token": token, "status": "success"})
-		return
-	}
-	if err.Error() != "captcha required" {
-		c.JSON(500, gin.H{"error": err.Error()})
-		return
-	}
-	session, err := funcaptcha.StartChallenge(token, hex)
-	if err != nil {
-		c.JSON(500, gin.H{"error": "unable to log requests"})
-		return
-	}
-	err = session.RequestChallenge(false)
-	if err != nil {
-		c.JSON(500, gin.H{"error": "failed to request challenge"})
-		return
-	}
-	// Get form data (check if download_images is true)
-	download_images := c.Query("download_images")
 	var images []string
-	if download_images == "true" {
-		// Get Base64 encoded image
-		images, err = funcaptcha.DownloadChallenge(session.ConciseChallenge.URLs, true)
-		if err != nil {
-			c.JSON(500, gin.H{"error": "failed to download images"})
+	var token, hex string
+	var err error
+	var session *funcaptcha.Session
+	for i := 0; i < 20; i++ {
+		token, hex, err = funcaptcha.GetOpenAIToken()
+		if err == nil {
+			c.JSON(200, gin.H{"token": token, "status": "success"})
 			return
 		}
+		if err.Error() != "captcha required" {
+			c.JSON(500, gin.H{"error": err.Error()})
+			return
+		}
+		session, err = funcaptcha.StartChallenge(token, hex)
+		if err != nil {
+			c.JSON(500, gin.H{"error": "unable to log requests"})
+			return
+		}
+		err = session.RequestChallenge(false)
+		if err != nil {
+			c.JSON(500, gin.H{"error": "failed to request challenge"})
+			return
+		}
+		err = session.SubmitAnswer(2)
+		if err == nil {
+			c.JSON(200, gin.H{"token": token, "status": "success"})
+		}
+		log.Println("Retrying...")
+
 	}
 	c.JSON(http.StatusNetworkAuthenticationRequired, gin.H{"token": token, "session": session, "status": "captcha", "images": images})
 }
