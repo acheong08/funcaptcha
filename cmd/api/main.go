@@ -50,9 +50,15 @@ func captchaStart(c *gin.Context) {
 		err = session.SubmitAnswer(2)
 		if err == nil {
 			c.JSON(200, gin.H{"token": token, "status": "success"})
+			return
 		}
 		log.Println("Retrying...")
+	}
 
+	// Download the images
+	images, err = funcaptcha.DownloadChallenge(session.ConciseChallenge.URLs, true)
+	if err != nil {
+		c.JSON(500, gin.H{"error": "failed to download images"})
 	}
 	c.JSON(http.StatusNetworkAuthenticationRequired, gin.H{"token": token, "session": session, "status": "captcha", "images": images})
 }
