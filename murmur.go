@@ -15,7 +15,7 @@ func getMurmur128String(input string, seed uint64) string {
 	d := newWithSeed(seed)
 	d.Write([]byte(input))
 	h1, h2 := d.Sum()
-	return fmt.Sprintf("%x%x", h1, h2)
+	return fmt.Sprintf("%016x%016x", h1, h2)
 }
 
 func newWithSeed(seed uint64) *digest {

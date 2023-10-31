@@ -123,17 +123,17 @@ func pKCS5Padding(src []byte, blockSize int) []byte {
 	return append(src, padtext...)
 }
 
-func Decrypt(data string, key string) string {
-	decDataText, err := AesDecrypt(data, key)
+func Decrypt(data string, password string, fallbackPass string) string {
+	decDataText, err := AesDecrypt(data, password, fallbackPass)
 
 	if err != nil {
-		panic(err)
+		println(err.Error())
 	}
 
 	return decDataText
 }
 
-func AesDecrypt(baseText string, password string) (string, error) {
+func AesDecrypt(baseText string, password string, fallbackPass string) (string, error) {
 	encBytes, err := base64.StdEncoding.DecodeString(baseText)
 	if err != nil {
 		return "", err
@@ -151,6 +151,8 @@ func AesDecrypt(baseText string, password string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	dstBytes := make([]byte, len(cipherBytes))
+decrypt:
 	key, iv, err := DefaultEvpKDF([]byte(password), salt)
 	if err != nil {
 		return "", err
@@ -162,9 +164,16 @@ func AesDecrypt(baseText string, password string) (string, error) {
 	}
 
 	mode := cipher.NewCBCDecrypter(block, iv)
-	mode.CryptBlocks(cipherBytes, cipherBytes)
-
-	result := PKCS5UnPadding(cipherBytes)
+	mode.CryptBlocks(dstBytes, cipherBytes)
+	result := PKCS5UnPadding(dstBytes)
+	if !json.Valid(result) {
+		if password == fallbackPass {
+			return "", errors.New("decryption can't get the correct result")
+		} else {
+			password = fallbackPass
+			goto decrypt
+		}
+	}
 	return string(result), nil
 }
 

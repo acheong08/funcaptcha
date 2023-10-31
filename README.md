@@ -6,11 +6,11 @@ Usage for OpenAI
 import (
 	"fmt"
 
-	"github.com/acheong08/funcaptcha"
+	"github.com/xqdoo00o/funcaptcha"
 )
 
 func main() {
-	token, _, _ := funcaptcha.GetOpenAIToken()
+	token, _ := funcaptcha.GetOpenAIToken("", "")
 	fmt.Println(token)
 }
 ```
