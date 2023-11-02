@@ -30,12 +30,12 @@ func jsonToForm(data string) string {
 	return form.Encode()
 }
 
-func DownloadChallenge(urls []string, b64 bool) ([]string, error) {
+func (s *Session) DownloadChallenge(urls []string, b64 bool) ([]string, error) {
 	var b64_imgs []string = make([]string, len(urls))
 	for i, url := range urls {
 		req, _ := http.NewRequest(http.MethodGet, url, nil)
 		req.Header = headers
-		resp, err := (*client).Do(req)
+		resp, err := (*s.Client).Do(req)
 		if err != nil {
 			return nil, err
 		}

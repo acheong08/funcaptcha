@@ -13,16 +13,19 @@ import (
 
 	http "github.com/bogdanfinn/fhttp"
 	tls_client "github.com/bogdanfinn/tls-client"
+	"github.com/bogdanfinn/tls-client/profiles"
 )
 
 type Session struct {
-	Sid              string           `json:"sid"`
-	SessionToken     string           `json:"session_token"`
-	Hex              string           `json:"hex"`
-	ChallengeLogger  challengeLogger  `json:"challenge_logger"`
-	Challenge        Challenge        `json:"challenge"`
-	ConciseChallenge ConciseChallenge `json:"concise_challenge"`
-	Headers          http.Header      `json:"headers"`
+	Sid              string                        `json:"sid"`
+	SessionToken     string                        `json:"session_token"`
+	Hex              string                        `json:"hex"`
+	ChallengeLogger  challengeLogger               `json:"challenge_logger"`
+	Challenge        Challenge                     `json:"challenge"`
+	ConciseChallenge ConciseChallenge              `json:"concise_challenge"`
+	Headers          http.Header                   `json:"headers"`
+	Client           *tls_client.HttpClient        `json:"-"`
+	options          []tls_client.HttpClientOption `json:"-"`
 }
 
 type ConciseChallenge struct {
@@ -189,6 +192,16 @@ func StartChallenge(full_session, hex string) (*Session, error) {
 		RenderType:    "canvas",
 	}
 	err := session.log("", 0, "Site URL", fmt.Sprintf("https://client-api.arkoselabs.com/v2/1.5.5/enforcement.%s.html", hex))
+	jar := tls_client.NewCookieJar()
+	session.options = []tls_client.HttpClientOption{
+		tls_client.WithTimeoutSeconds(360),
+		tls_client.WithClientProfile(profiles.Chrome_117),
+		tls_client.WithRandomTLSExtensionOrder(),
+		tls_client.WithNotFollowRedirects(),
+		tls_client.WithCookieJar(jar),
+	}
+	client, _ := tls_client.NewHttpClient(tls_client.NewNoopLogger(), session.options...)
+	session.Client = &client
 	return &session, err
 }
 
@@ -207,7 +220,7 @@ func (c *Session) RequestChallenge(isAudioGame bool) (*ApiBreaker, error) {
 	req, _ := http.NewRequest(http.MethodPost, "https://client-api.arkoselabs.com/fc/gfct/", strings.NewReader(payload))
 	req.Header = c.Headers
 	req.Header.Set("X-NewRelic-Timestamp", getTimeStamp())
-	resp, err := (*client).Do(req)
+	resp, err := (*c.Client).Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -289,7 +302,7 @@ func (c *Session) SubmitAnswer(indices []int, isAudio bool, apiBreaker *ApiBreak
 	req.Header.Set("X-Requested-ID", getRequestId(c.SessionToken))
 	req.Header.Set("X-NewRelic-Timestamp", getTimeStamp())
 
-	resp, err := (*client).Do(req)
+	resp, err := (*c.Client).Do(req)
 	if err != nil {
 		return err
 	}
@@ -314,11 +327,8 @@ func (c *Session) SubmitAnswer(indices []int, isAudio bool, apiBreaker *ApiBreak
 		return fmt.Errorf("incorrect guess: %s", response.IncorrectGuess)
 	}
 	// Set new client
-	cli, _ := tls_client.NewHttpClient(tls_client.NewNoopLogger(), options...)
-	client = &cli
-	if proxy != "" {
-		(*client).SetProxy(proxy)
-	}
+	cli, _ := tls_client.NewHttpClient(tls_client.NewNoopLogger(), c.options...)
+	c.Client = &cli
 	return nil
 }
 
@@ -333,7 +343,7 @@ func (c *Session) log(game_token string, game_type int, category, action string)
 
 	request, _ := http.NewRequest(http.MethodPost, "https://client-api.arkoselabs.com/fc/a/", strings.NewReader(jsonToForm(toJSON(v))))
 	request.Header = headers
-	resp, err := (*client).Do(request)
+	resp, err := (*c.Client).Do(request)
 	if err != nil {
 		return err
 	}
