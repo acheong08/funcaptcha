@@ -68,6 +68,9 @@ func (s *Solver) GetOpenAITokenWithBx(version arkVer, bx string, puid string) (s
 }
 
 func (s *Solver) sendRequest(arkType arkVer, bda string, puid string) (string, error) {
+	if len(s.arks[arkType]) == 0 {
+		return "", errors.New("a valid HAR file with arkType " + string(arkType) + " required")
+	}
 	var tmpArk *arkReq = &s.arks[arkType][0]
 	s.arks[arkType] = append(s.arks[arkType][1:], s.arks[arkType][0])
 	if tmpArk == nil || tmpArk.arkBx == "" || len(tmpArk.arkBody) == 0 || len(tmpArk.arkHeader) == 0 {
