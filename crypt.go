@@ -153,7 +153,8 @@ func AesDecrypt(baseText string, password string, fallbackPass string) (string, 
 	}
 	dstBytes := make([]byte, len(cipherBytes))
 decrypt:
-	key, iv, err := DefaultEvpKDF([]byte(password), salt)
+	key, _, err := DefaultEvpKDF([]byte(password), salt)
+	iv, _ := hex.DecodeString(encData.Iv)
 	if err != nil {
 		return "", err
 	}
